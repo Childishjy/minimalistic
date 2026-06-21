@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+  <meta name="theme-color" content="#000000"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="Minimalist"/>
+  <title>Minimalist Phone</title>
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="apple-touch-icon" href="icons/icon-192.png"/>
+  <style>
+    /* ─── TOKENS ─── */
+    :root {
+      --bg: #000;
+      --text: #fff;
+      --sub: rgba(255,255,255,0.45);
+      --dim: rgba(255,255,255,0.12);
+      --line: rgba(255,255,255,0.08);
+      --font: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      --safe-top: env(safe-area-inset-top, 44px);
+      --safe-bot: env(safe-area-inset-bottom, 34px);
+    }
+    /* LIGHT THEME */
+    body.light {
+      --bg: #fff;
+      --text: #000;
+      --sub: rgba(0,0,0,0.45);
+      --dim: rgba(0,0,0,0.07);
+      --line: rgba(0,0,0,0.07);
+    }
+
+    /* ─── RESET ─── */
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+    html,body{
+      height:100%;
+      background:var(--bg);
+      color:var(--text);
+      font-family:var(--font);
+      -webkit-font-smoothing:antialiased;
+      overscroll-behavior:none;
+      user-select:none;
+      transition:background .25s,color .25s;
+    }
+
+    /* ─── SCREENS ─── */
+    .screen{
+      position:fixed;inset:0;
+      display:none;
+      flex-direction:column;
+      background:var(--bg);
+    }
+    .screen.active{display:flex;}
+
+    /* ─── HOME SCREEN ─── */
+    #home{
+      padding:var(--safe-top) 0 var(--safe-bot);
+      justify-content:space-between;
+    }
+
+    /* top section: time + date */
+    .home-top{
+      padding:20px 28px 0;
+    }
+    .home-time{
+      font-size:68px;
+      font-weight:200;
+      letter-spacing:-2px;
+      line-height:1;
+      color:var(--text);
+    }
+    .home-date{
+      font-size:15px;
+      color:var(--sub);
+      margin-top:6px;
+      font-weight:300;
+      letter-spacing:0.2px;
+    }
+
+    /* pinned apps — the heart of minimalist phone */
+    .pinned-apps{
+      padding:0 28px;
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      gap:2px;
+    }
+    .app-row{
+      display:flex;
+      align-items:center;
+      padding:11px 0;
+      border-bottom:1px solid var(--line);
+      cursor:pointer;
+      position:relative;
+      transition:opacity .1s;
+    }
+    .app-row:first-child{border-top:1px solid var(--line);}
+    .app-row:active{opacity:0.55;}
+    .app-name{
+      font-size:22px;
+      font-weight:300;
+      color:var(--text);
+      letter-spacing:-0.3px;
+      flex:1;
+    }
+    .app-row.notification::after{
+      content:'';
+      width:7px;height:7px;
+      border-radius:50%;
+      background:var(--text);
+      opacity:0.7;
+    }
+    .app-time{
+      font-size:13px;
+      color:var(--sub);
+      margin-right:10px;
+    }
+
+    /* screen time badge */
+    .app-badge{
+      font-size:11px;
+      color:var(--sub);
+      background:var(--dim);
+      padding:3px 8px;
+      border-radius:99px;
+    }
+
+    /* bottom controls */
+    .home-bottom{
+      padding:0 28px calc(var(--safe-bot) + 8px);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .home-btn{
+      width:46px;height:46px;
+      border-radius:50%;
+      background:var(--dim);
+      border:none;
+      display:flex;align-items:center;justify-content:center;
+      cursor:pointer;
+      transition:background .15s;
+    }
+    .home-btn:active{background:rgba(255,255,255,0.2);}
+    body.light .home-btn:active{background:rgba(0,0,0,0.12);}
+    .home-btn svg{stroke:var(--text);fill:none;transition:stroke .25s;}
+
+    .swipe-hint{
+      font-size:12px;
+      color:var(--sub);
+      letter-spacing:0.3px;
+    }
+
+    /* ─── ALL APPS SCREEN ─── */
+    #apps-screen{
+      padding:var(--safe-top) 0 var(--safe-bot);
+    }
+    .apps-header{
+      padding:24px 28px 16px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .apps-title{
+      font-size:17px;
+      font-weight:400;
+      color:var(--sub);
+      letter-spacing:0.2px;
+    }
+    .apps-close{
+      background:none;border:none;cursor:pointer;
+      width:34px;height:34px;
+      display:flex;align-items:center;justify-content:center;
+    }
+    .apps-close svg{stroke:var(--sub);fill:none;}
+
+    /* search bar */
+    .search-wrap{
+      padding:0 28px 20px;
+    }
+    .search-input{
+      width:100%;
+      background:var(--dim);
+      border:none;
+      border-radius:12px;
+      padding:12px 16px 12px 38px;
+      font-size:15px;
+      font-family:var(--font);
+      color:var(--text);
+      font-weight:300;
+      outline:none;
+      position:relative;
+    }
+    .search-input::placeholder{color:var(--sub);}
+    .search-wrap{position:relative;}
+    .search-icon{
+      position:absolute;
+      left:44px;top:50%;transform:translateY(-50%);
+      pointer-events:none;
+    }
+    .search-icon svg{stroke:var(--sub);fill:none;}
+
+    /* alpha list */
+    .all-apps-list{
+      flex:1;
+      overflow-y:auto;
+      padding:0 28px;
+      -webkit-overflow-scrolling:touch;
+    }
+    .all-apps-list::-webkit-scrollbar{display:none;}
+
+    .alpha-group{}
+    .alpha-label{
+      font-size:12px;
+      color:var(--sub);
+      font-weight:400;
+      padding:14px 0 6px;
+      letter-spacing:0.5px;
+    }
+    .app-list-item{
+      display:flex;
+      align-items:center;
+      padding:13px 0;
+      border-bottom:1px solid var(--line);
+      cursor:pointer;
+      transition:opacity .1s;
+    }
+    .app-list-item:active{opacity:0.5;}
+    .app-list-name{
+      font-size:18px;
+      font-weight:300;
+      color:var(--text);
+      flex:1;
+    }
+    .pin-btn{
+      width:30px;height:30px;
+      background:none;border:none;
+      display:flex;align-items:center;justify-content:center;
+      cursor:pointer;
+      border-radius:50%;
+      transition:background .15s;
+    }
+    .pin-btn:active{background:var(--dim);}
+    .pin-btn svg{stroke:var(--sub);fill:none;transition:stroke .2s,fill .2s;}
+    .pin-btn.pinned svg{stroke:var(--text);fill:var(--text);}
+
+    /* ─── SETTINGS SCREEN ─── */
+    #settings-screen{
+      padding:var(--safe-top) 0 var(--safe-bot);
+      overflow-y:auto;
+    }
+    .settings-header{
+      padding:24px 28px 20px;
+      display:flex;align-items:center;gap:12px;
+    }
+    .settings-back{
+      background:none;border:none;cursor:pointer;
+      width:34px;height:34px;display:flex;align-items:center;justify-content:center;
+    }
+    .settings-back svg{stroke:var(--text);fill:none;}
+    .settings-title{font-size:20px;font-weight:300;color:var(--text);}
+
+    .settings-section{
+      padding:0 28px;
+      margin-bottom:32px;
+    }
+    .settings-section-label{
+      font-size:11px;
+      color:var(--sub);
+      text-transform:uppercase;
+      letter-spacing:1.2px;
+      margin-bottom:12px;
+    }
+    .settings-row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:15px 0;
+      border-bottom:1px solid var(--line);
+    }
+    .settings-row:first-of-type{border-top:1px solid var(--line);}
+    .settings-label{font-size:17px;font-weight:300;color:var(--text);}
+    .settings-sub{font-size:13px;color:var(--sub);margin-top:2px;}
+
+    /* toggle switch */
+    .toggle{
+      width:51px;height:31px;
+      background:var(--dim);
+      border-radius:99px;
+      position:relative;
+      cursor:pointer;
+      transition:background .2s;
+      flex-shrink:0;
+      border:none;
+    }
+    .toggle.on{background:#4CD964;}
+    .toggle::after{
+      content:'';
+      position:absolute;
+      width:27px;height:27px;
+      background:#fff;
+      border-radius:50%;
+      top:2px;left:2px;
+      transition:transform .2s cubic-bezier(.34,1.56,.64,1);
+      box-shadow:0 1px 3px rgba(0,0,0,0.25);
+    }
+    .toggle.on::after{transform:translateX(20px);}
+
+    /* font size picker */
+    .size-options{
+      display:flex;gap:8px;
+    }
+    .size-opt{
+      width:40px;height:32px;
+      border-radius:8px;
+      background:var(--dim);
+      border:none;
+      color:var(--text);
+      font-family:var(--font);
+      cursor:pointer;
+      transition:background .15s;
+      display:flex;align-items:center;justify-content:center;
+    }
+    .size-opt.active{background:var(--text);color:var(--bg);}
+
+    /* ─── OVERLAY ─── */
+    #overlay{
+      position:fixed;inset:0;
+      background:rgba(0,0,0,0.5);
+      display:none;
+      z-index:10;
+      align-items:flex-end;
+    }
+    #overlay.show{display:flex;}
+    .sheet{
+      background:var(--bg);
+      border-radius:20px 20px 0 0;
+      padding:20px 28px calc(var(--safe-bot) + 20px);
+      width:100%;
+    }
+    .sheet-handle{
+      width:36px;height:4px;
+      background:var(--dim);
+      border-radius:99px;
+      margin:0 auto 20px;
+    }
+    .sheet-title{font-size:17px;font-weight:400;color:var(--text);margin-bottom:16px;}
+    .sheet-row{
+      display:flex;align-items:center;
+      padding:13px 0;
+      border-bottom:1px solid var(--line);
+      cursor:pointer;
+      transition:opacity .1s;
+    }
+    .sheet-row:active{opacity:0.5;}
+    .sheet-row-label{font-size:17px;font-weight:300;color:var(--text);flex:1;}
+    .sheet-row svg{stroke:var(--sub);fill:none;}
+
+    /* ─── TRANSITIONS ─── */
+    #apps-screen,#settings-screen{
+      transform:translateX(100%);
+      transition:transform .3s cubic-bezier(.25,.46,.45,.94);
+    }
+    #apps-screen.active,#settings-screen.active{
+      transform:translateX(0);
+      display:flex;
+    }
+
+    /* ─── GESTURES (visual) ─── */
+    #home.swiping{transition:none;}
+
+    /* font size */
+    body.font-sm .app-name{font-size:18px;}
+    body.font-lg .app-name{font-size:26px;}
+    body.font-sm .app-list-name{font-size:15px;}
+    body.font-lg .app-list-name{font-size:21px;}
+
+    /* ─── MISC ─── */
+    ::-webkit-scrollbar{display:none;}
+    input[type=text]:focus{outline:none;}
+  </style>
+</head>
+<body>
+
+<!-- ══ HOME SCREEN ══ -->
+<div id="home" class="screen active">
+  <div class="home-top">
+    <div class="home-time" id="clock">00:00</div>
+    <div class="home-date" id="date-line">Monday, June 21</div>
+  </div>
+
+  <div class="pinned-apps" id="pinned-list">
+    <!-- rendered by JS -->
+  </div>
+
+  <div class="home-bottom">
+    <button class="home-btn" id="btn-apps" aria-label="All apps">
+      <svg width="22" height="22" viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+        <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+      </svg>
+    </button>
+    <span class="swipe-hint">swipe up for all apps</span>
+    <button class="home-btn" id="btn-settings" aria-label="Settings">
+      <svg width="22" height="22" viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<!-- ══ ALL APPS SCREEN ══ -->
+<div id="apps-screen" class="screen">
+  <div class="apps-header">
+    <span class="apps-title">All apps</span>
+    <button class="apps-close" id="apps-close" aria-label="Close">
+      <svg width="20" height="20" viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="search-wrap">
+    <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    </svg>
+    <input type="text" class="search-input" id="search-input" placeholder="Search apps…"/>
+  </div>
+
+  <div class="all-apps-list" id="all-apps-list">
+    <!-- rendered by JS -->
+  </div>
+</div>
+
+<!-- ══ SETTINGS SCREEN ══ -->
+<div id="settings-screen" class="screen">
+  <div class="settings-header">
+    <button class="settings-back" id="settings-back" aria-label="Back">
+      <svg width="22" height="22" viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+    </button>
+    <span class="settings-title">Settings</span>
+  </div>
+
+  <div class="settings-section">
+    <div class="settings-section-label">Appearance</div>
+
+    <div class="settings-row">
+      <div>
+        <div class="settings-label">Dark mode</div>
+        <div class="settings-sub">Pure black background</div>
+      </div>
+      <button class="toggle on" id="toggle-dark"></button>
+    </div>
+
+    <div class="settings-row">
+      <div>
+        <div class="settings-label">Font size</div>
+      </div>
+      <div class="size-options">
+        <button class="size-opt" id="sz-sm" style="font-size:12px">A</button>
+        <button class="size-opt active" id="sz-md" style="font-size:16px">A</button>
+        <button class="size-opt" id="sz-lg" style="font-size:20px">A</button>
+      </div>
+    </div>
+
+    <div class="settings-row">
+      <div>
+        <div class="settings-label">Show screen time</div>
+        <div class="settings-sub">Next to each app name</div>
+      </div>
+      <button class="toggle on" id="toggle-time"></button>
+    </div>
+
+    <div class="settings-row">
+      <div>
+        <div class="settings-label">Show notifications dot</div>
+      </div>
+      <button class="toggle on" id="toggle-notif"></button>
+    </div>
+  </div>
+
+  <div class="settings-section">
+    <div class="settings-section-label">Home screen</div>
+
+    <div class="settings-row">
+      <div>
+        <div class="settings-label">Clock format</div>
+        <div class="settings-sub" id="clock-format-label">24-hour</div>
+      </div>
+      <button class="settings-back" id="toggle-clock" style="width:auto;background:none;border:none;cursor:pointer;color:var(--sub);font-size:14px;font-family:var(--font);">
+        Switch
+      </button>
+    </div>
+
+    <div class="settings-row" id="manage-apps-row" style="cursor:pointer">
+      <div>
+        <div class="settings-label">Manage pinned apps</div>
+        <div class="settings-sub">Reorder or remove</div>
+      </div>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--sub)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="9 18 15 12 9 6"/>
+      </svg>
+    </div>
+  </div>
+
+  <div class="settings-section">
+    <div class="settings-section-label">About</div>
+    <div class="settings-row">
+      <div class="settings-label" style="color:var(--sub);font-size:14px">Minimalist Phone v1.0</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ BOTTOM SHEET (long-press menu) ══ -->
+<div id="overlay">
+  <div class="sheet" id="app-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="sheet-app-name">App name</div>
+    <div class="sheet-row" id="sheet-pin">
+      <span class="sheet-row-label" id="sheet-pin-label">Pin to home</span>
+      <svg width="18" height="18" viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/>
+      </svg>
+    </div>
+    <div class="sheet-row" id="sheet-open">
+      <span class="sheet-row-label">Open app</span>
+      <svg width="18" height="18" viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+      </svg>
+    </div>
+    <div class="sheet-row" id="sheet-cancel">
+      <span class="sheet-row-label" style="color:var(--sub)">Cancel</span>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── APP DATABASE ─────────────────────────────────────────
+// These represent common phone apps, text-only like minimalist phone
+const ALL_APPS = [
+  {id:'phone',    name:'Phone',      pkg:'tel:',          hasNotif:true},
+  {id:'messages', name:'Messages',   pkg:'sms:',          hasNotif:true},
+  {id:'whatsapp', name:'WhatsApp',   pkg:'whatsapp://',   hasNotif:true},
+  {id:'camera',   name:'Camera',     pkg:'',              hasNotif:false},
+  {id:'maps',     name:'Maps',       pkg:'geo:',          hasNotif:false},
+  {id:'chrome',   name:'Chrome',     pkg:'googlechrome://',hasNotif:false},
+  {id:'gmail',    name:'Gmail',      pkg:'mailto:',       hasNotif:true},
+  {id:'calendar', name:'Calendar',   pkg:'',              hasNotif:false},
+  {id:'spotify',  name:'Spotify',    pkg:'spotify://',    hasNotif:false},
+  {id:'youtube',  name:'YouTube',    pkg:'youtube://',    hasNotif:false},
+  {id:'instagram',name:'Instagram',  pkg:'instagram://',  hasNotif:false},
+  {id:'twitter',  name:'X',          pkg:'twitter://',    hasNotif:true},
+  {id:'uber',     name:'Uber',       pkg:'uber://',       hasNotif:false},
+  {id:'mpesa',    name:'M-Pesa',     pkg:'',              hasNotif:false},
+  {id:'netflix',  name:'Netflix',    pkg:'nflx://',       hasNotif:false},
+  {id:'tiktok',   name:'TikTok',     pkg:'snssdk1233://', hasNotif:false},
+  {id:'telegram', name:'Telegram',   pkg:'tg://',         hasNotif:true},
+  {id:'clock',    name:'Clock',      pkg:'',              hasNotif:true},
+  {id:'photos',   name:'Photos',     pkg:'',              hasNotif:false},
+  {id:'settings', name:'Settings',   pkg:'',              hasNotif:false},
+  {id:'files',    name:'Files',      pkg:'',              hasNotif:false},
+  {id:'notes',    name:'Notes',      pkg:'',              hasNotif:false},
+  {id:'contacts', name:'Contacts',   pkg:'',              hasNotif:false},
+  {id:'bank',     name:'Banking',    pkg:'',              hasNotif:true},
+  {id:'amazon',   name:'Amazon',     pkg:'amzn://',       hasNotif:false},
+  {id:'linkedin', name:'LinkedIn',   pkg:'linkedin://',   hasNotif:true},
+];
+
+// ── STATE ────────────────────────────────────────────────
+let pinned = JSON.parse(localStorage.getItem('mp_pinned') || 'null') || ['phone','messages','whatsapp','camera','maps','gmail'];
+let settings = JSON.parse(localStorage.getItem('mp_settings') || 'null') || {
+  dark: true,
+  fontSz: 'md',
+  showTime: true,
+  showNotif: true,
+  hr24: true
+};
+let screenTimes = {'phone':'2h 14m','messages':'1h 03m','whatsapp':'3h 22m','instagram':'1h 45m','youtube':'0h 58m','twitter':'0h 34m','gmail':'0h 22m','chrome':'1h 10m'};
+
+function saveSettings(){ localStorage.setItem('mp_settings', JSON.stringify(settings)); }
+function savePinned(){ localStorage.setItem('mp_pinned', JSON.stringify(pinned)); }
+
+// ── CLOCK ────────────────────────────────────────────────
+function tick(){
+  const now = new Date();
+  let h = now.getHours(), m = now.getMinutes();
+  let str;
+  if(settings.hr24){
+    str = String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+  } else {
+    let ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    str = h + ':' + String(m).padStart(2,'0') + ' ' + ampm;
+  }
+  document.getElementById('clock').textContent = str;
+  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('date-line').textContent = days[now.getDay()] + ', ' + months[now.getMonth()] + ' ' + now.getDate();
+}
+tick(); setInterval(tick, 5000);
+
+// ── APPLY SETTINGS ───────────────────────────────────────
+function applyTheme(){
+  document.body.classList.toggle('light', !settings.dark);
+}
+function applyFont(){
+  document.body.classList.remove('font-sm','font-lg');
+  if(settings.fontSz==='sm') document.body.classList.add('font-sm');
+  if(settings.fontSz==='lg') document.body.classList.add('font-lg');
+}
+function applyAll(){ applyTheme(); applyFont(); renderHome(); }
+
+// ── RENDER HOME ──────────────────────────────────────────
+function renderHome(){
+  const list = document.getElementById('pinned-list');
+  if(pinned.length === 0){
+    list.innerHTML = `<div style="text-align:center;color:var(--sub);font-size:15px;font-weight:300;padding:20px 0">
+      Tap the grid icon below to add apps
+    </div>`;
+    return;
+  }
+  list.innerHTML = pinned.map(id => {
+    const app = ALL_APPS.find(a => a.id === id);
+    if(!app) return '';
+    const t = settings.showTime && screenTimes[id] ? `<span class="app-time">${screenTimes[id]}</span>` : '';
+    const notif = settings.showNotif && app.hasNotif ? 'notification' : '';
+    return `<div class="app-row ${notif}" data-id="${id}" data-pkg="${app.pkg}">
+      <span class="app-name">${app.name}</span>
+      ${t}
+    </div>`;
+  }).join('');
+
+  // tap to launch
+  list.querySelectorAll('.app-row').forEach(row => {
+    row.addEventListener('click', () => openApp(row.dataset.id, row.dataset.pkg));
+    row.addEventListener('contextmenu', e => { e.preventDefault(); showSheet(row.dataset.id); });
+    // long press
+    let lt;
+    row.addEventListener('touchstart', () => { lt = setTimeout(() => showSheet(row.dataset.id), 500); });
+    row.addEventListener('touchend', () => clearTimeout(lt));
+    row.addEventListener('touchmove', () => clearTimeout(lt));
+  });
+}
+
+// ── RENDER ALL APPS ──────────────────────────────────────
+function renderAllApps(filter=''){
+  const list = document.getElementById('all-apps-list');
+  const filtered = ALL_APPS.filter(a => a.name.toLowerCase().includes(filter.toLowerCase()));
+
+  // group by first letter
+  const groups = {};
+  filtered.forEach(a => {
+    const l = a.name[0].toUpperCase();
+    if(!groups[l]) groups[l]=[];
+    groups[l].push(a);
+  });
+
+  let html = '';
+  Object.keys(groups).sort().forEach(l => {
+    html += `<div class="alpha-group"><div class="alpha-label">${l}</div>`;
+    groups[l].forEach(app => {
+      const isPinned = pinned.includes(app.id);
+      html += `<div class="app-list-item" data-id="${app.id}" data-pkg="${app.pkg}">
+        <span class="app-list-name">${app.name}</span>
+        <button class="pin-btn ${isPinned?'pinned':''}" data-id="${app.id}" aria-label="${isPinned?'Unpin':'Pin'} ${app.name}">
+          <svg width="18" height="18" viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/>
+          </svg>
+        </button>
+      </div>`;
+    });
+    html += '</div>';
+  });
+
+  if(!html) html = `<div style="color:var(--sub);font-size:15px;padding:20px 0;font-weight:300">No apps found</div>`;
+  list.innerHTML = html;
+
+  // app tap
+  list.querySelectorAll('.app-list-item').forEach(row => {
+    row.addEventListener('click', e => {
+      if(e.target.closest('.pin-btn')) return;
+      openApp(row.dataset.id, row.dataset.pkg);
+    });
+  });
+
+  // pin btns
+  list.querySelectorAll('.pin-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const id = btn.dataset.id;
+      if(pinned.includes(id)){
+        pinned = pinned.filter(p => p !== id);
+        btn.classList.remove('pinned');
+        btn.setAttribute('aria-label', 'Pin');
+      } else {
+        pinned.push(id);
+        btn.classList.add('pinned');
+        btn.setAttribute('aria-label', 'Unpin');
+      }
+      savePinned();
+      renderHome();
+    });
+  });
+}
+
+// ── OPEN APP ─────────────────────────────────────────────
+function openApp(id, pkg){
+  if(pkg && pkg !== ''){
+    // try to deep-link; falls back gracefully
+    try{ window.location.href = pkg; } catch(e){}
+  }
+  // store as most-recent (for screen time sim)
+  if(!screenTimes[id]) screenTimes[id] = '0h 01m';
+}
+
+// ── BOTTOM SHEET ─────────────────────────────────────────
+let sheetAppId = null;
+function showSheet(id){
+  sheetAppId = id;
+  const app = ALL_APPS.find(a => a.id === id);
+  document.getElementById('sheet-app-name').textContent = app.name;
+  const isPinned = pinned.includes(id);
+  document.getElementById('sheet-pin-label').textContent = isPinned ? 'Unpin from home' : 'Pin to home';
+  document.getElementById('overlay').classList.add('show');
+}
+document.getElementById('sheet-pin').addEventListener('click', () => {
+  if(!sheetAppId) return;
+  if(pinned.includes(sheetAppId)){
+    pinned = pinned.filter(p => p !== sheetAppId);
+  } else {
+    pinned.push(sheetAppId);
+  }
+  savePinned(); renderHome();
+  document.getElementById('overlay').classList.remove('show');
+});
+document.getElementById('sheet-open').addEventListener('click', () => {
+  if(sheetAppId){
+    const app = ALL_APPS.find(a => a.id === sheetAppId);
+    openApp(sheetAppId, app.pkg);
+  }
+  document.getElementById('overlay').classList.remove('show');
+});
+document.getElementById('sheet-cancel').addEventListener('click', () => {
+  document.getElementById('overlay').classList.remove('show');
+});
+document.getElementById('overlay').addEventListener('click', e => {
+  if(e.target === document.getElementById('overlay'))
+    document.getElementById('overlay').classList.remove('show');
+});
+
+// ── NAVIGATION ───────────────────────────────────────────
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById(id);
+  el.classList.add('active');
+}
+function goHome(){ showScreen('home'); }
+
+document.getElementById('btn-apps').addEventListener('click', () => {
+  showScreen('apps-screen');
+  renderAllApps();
+  document.getElementById('search-input').value = '';
+});
+document.getElementById('apps-close').addEventListener('click', goHome);
+document.getElementById('btn-settings').addEventListener('click', () => showScreen('settings-screen'));
+document.getElementById('settings-back').addEventListener('click', goHome);
+document.getElementById('manage-apps-row').addEventListener('click', () => {
+  showScreen('apps-screen');
+  renderAllApps();
+});
+
+// swipe up from home → all apps
+let startY = 0;
+document.getElementById('home').addEventListener('touchstart', e => { startY = e.touches[0].clientY; });
+document.getElementById('home').addEventListener('touchend', e => {
+  const dy = startY - e.changedTouches[0].clientY;
+  if(dy > 60){ showScreen('apps-screen'); renderAllApps(); }
+});
+
+// search
+document.getElementById('search-input').addEventListener('input', e => renderAllApps(e.target.value));
+
+// ── SETTINGS CONTROLS ────────────────────────────────────
+document.getElementById('toggle-dark').addEventListener('click', function(){
+  settings.dark = !settings.dark;
+  this.classList.toggle('on', settings.dark);
+  applyTheme(); saveSettings();
+});
+document.getElementById('toggle-time').addEventListener('click', function(){
+  settings.showTime = !settings.showTime;
+  this.classList.toggle('on', settings.showTime);
+  renderHome(); saveSettings();
+});
+document.getElementById('toggle-notif').addEventListener('click', function(){
+  settings.showNotif = !settings.showNotif;
+  this.classList.toggle('on', settings.showNotif);
+  renderHome(); saveSettings();
+});
+document.getElementById('toggle-clock').addEventListener('click', function(){
+  settings.hr24 = !settings.hr24;
+  document.getElementById('clock-format-label').textContent = settings.hr24 ? '24-hour' : '12-hour';
+  tick(); saveSettings();
+});
+['sm','md','lg'].forEach(sz => {
+  document.getElementById('sz-'+sz).addEventListener('click', () => {
+    settings.fontSz = sz;
+    ['sm','md','lg'].forEach(s => document.getElementById('sz-'+s).classList.toggle('active', s===sz));
+    applyFont(); saveSettings();
+  });
+});
+
+// sync toggle states on load
+function syncToggleUI(){
+  document.getElementById('toggle-dark').classList.toggle('on', settings.dark);
+  document.getElementById('toggle-time').classList.toggle('on', settings.showTime);
+  document.getElementById('toggle-notif').classList.toggle('on', settings.showNotif);
+  document.getElementById('clock-format-label').textContent = settings.hr24 ? '24-hour' : '12-hour';
+  const szId = 'sz-' + (settings.fontSz || 'md');
+  ['sm','md','lg'].forEach(s => document.getElementById('sz-'+s).classList.toggle('active', 'sz-'+s===szId));
+}
+
+// ── INIT ─────────────────────────────────────────────────
+applyAll();
+syncToggleUI();
+renderHome();
+
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
